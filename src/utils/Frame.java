@@ -20,20 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JTable;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -83,6 +70,19 @@ public class Frame extends JFrame implements ActionListener, WindowListener, Mou
 
 	public JTextField hint(String t) {
 		return new JTextField() {
+			@Override
+			public void paint(Graphics g) {
+				super.paint(g);
+				if (getText().isEmpty()) {
+					g.setColor(Color.LIGHT_GRAY);
+					g.drawString(t, getInsets().left, getHeight() / 2 + 5);
+				}
+			}
+		};
+	}
+
+	public JPasswordField hintPw(String t) {
+		return new JPasswordField() {
 			@Override
 			public void paint(Graphics g) {
 				super.paint(g);

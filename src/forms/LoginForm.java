@@ -12,13 +12,14 @@ import utils.Temp;
 
 public class LoginForm extends Frame {
 	JTextField idField;
-	JTextField pwField;
+	JPasswordField pwField;
 	JButton loginBtn;
 
 	public LoginForm() {
 		init("로그인");
 
 		northP.setLayout(new FlowLayout(FlowLayout.CENTER));
+		marginBorder(northP, 10, 10, 0, 10);
 
 		JLabel img = new JLabel();
 		png(img, "icon/logo", 50, 50);
@@ -32,28 +33,30 @@ public class LoginForm extends Frame {
 
 
 		centerP.setLayout(new BoxLayout(centerP, BoxLayout.Y_AXIS));
+		marginBorder(centerP, 10, 10, 10, 10);
 
 		idField = hint("아이디를 입력하세요!");
-		idField.setMaximumSize(new Dimension(250, 30));
 		idField.setAlignmentX(Component.CENTER_ALIGNMENT);
-		sz(idField, 250, 50);
+		idField.setMaximumSize(new Dimension(250, 40));
+		sz(idField, 250, 40);
 
-		pwField = hint("비밀번호를 입력하세요!");
-		pwField.setMaximumSize(new Dimension(250, 30));
+		pwField = hintPw("비밀번호를 입력하세요!");
 		pwField.setAlignmentX(Component.CENTER_ALIGNMENT);
-		sz(pwField, 250, 50);
+		pwField.setMaximumSize(new Dimension(250, 40));
+		sz(pwField, 250, 40);
 
 		loginBtn = new JButton("로그인");
 		loginBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-		sz(loginBtn, 250, 50);
+		loginBtn.setMaximumSize(new Dimension(250, 40));
+		sz(loginBtn, 250, 40);
+		fk(loginBtn, Color.WHITE);
+		bk(loginBtn, Color.BLUE);
+		loginBtn.addActionListener(e -> login());
 
-		loginBtn.addActionListener(e -> {
-			login();
-		});
 		centerP.add(idField);
 		centerP.add(Box.createVerticalStrut(8));
 		centerP.add(pwField);
-		centerP.add(Box.createVerticalStrut(12));
+		centerP.add(Box.createVerticalStrut(8));
 		centerP.add(loginBtn);
 
 		showPackedPage();
@@ -98,7 +101,7 @@ public class LoginForm extends Frame {
     }
 
 	@Override
-	public void windowClosed(WindowEvent e) {
+	public void windowClosing(WindowEvent e) {
 		new MainForm();
 	}
 }
