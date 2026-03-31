@@ -25,6 +25,6 @@ public class Main {
 			if (f.toString().contains("background"))
 				UIManager.getLookAndFeelDefaults().put(f, new ColorUIResource(Color.white));
 		
-		new MainForm().showPackedPage();
+		new MainForm();
 	}
 }

@@ -8,44 +8,36 @@ import utils.Temp;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.border.StrokeBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainForm extends Frame {
-
-	// ── 슬라이드쇼 관련 ──────────────────────────────────────────
 	private List<ImageIcon> slideImages = new ArrayList<>();
 	private int slideIndex = 0;
 	private JLabel slideLabel;
 	private Timer slideTimer;
-
-	// ── 검색 ─────────────────────────────────────────────────────
 	private JTextField searchField;
-
-	// ── C 영역 (로그인/로그아웃 패널) ────────────────────────────
-	private JPanel cPanel;          // CardLayout 부모
+	private JPanel cPanel;
 	private CardLayout cCard;
-	private JPanel loginPanel;      // 미로그인 상태
-	private JPanel loggedPanel;     // 로그인 상태
+	private JPanel loginPanel;
+	private JPanel loggedPanel;
 	private JTextArea infoArea;
-
-	// 로그인 후 수강 목록 패널 (스크롤)
 	private JPanel courseListPanel;
-
-	// ── 카테고리 아이콘 영역 ──────────────────────────────────────
 	private JPanel iconPanel;
 
-	// 카테고리 데이터 (cgno, cgname, iconfile)
-	private static final String[][] ICON_MAP = {
-			// cgname 은 DB에서 읽지만, 아이콘 파일명은 datafiles/icon/ 하위
-			// 실제 카테고리 순서는 DB category 테이블 기준
+	private static final String[][] FIXED_ICONS = {
+			{"IT",   "it"},
+			{"요리",  "cooking"},
+			{"봉사",  "volunteer"},
+			{"운동",  "health"},
+			{"항공",  "aviation"},
+			{"의학",  "hospital"},
 	};
 
-	// ──────────────────────────────────────────────────────────────
 	public MainForm() {
 		init("자격증 메인 화면");
 		setSize(900, 620);
@@ -54,30 +46,16 @@ public class MainForm extends Frame {
 		startSlideShow();
 		loadCategoryIcons();
 		refreshCPanel();
-		showPage();
+		showPackedPage();
 	}
 
-	// =========================================================
-	// UI 구성
-	// =========================================================
 	private void buildUI() {
-		mainP.setBackground(Color.WHITE);
-
-		// ── NORTH: 로고 + 검색바 + 메뉴 ──────────────────────────
 		buildNorthArea();
-
-		// ── CENTER: 슬라이드(A) + 로그인C 패널 ───────────────────
 		buildCenterArea();
-
-		// ── SOUTH: 아이콘 카테고리 ────────────────────────────────
 		buildSouthArea();
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// NORTH 영역
-	// ──────────────────────────────────────────────────────────────
 	private void buildNorthArea() {
-		northP.setBackground(Color.WHITE);
 		northP.setBorder(new EmptyBorder(6, 10, 0, 10));
 
 		// 로고 행
@@ -97,44 +75,35 @@ public class MainForm extends Frame {
 		// B영역: 검색 (NORTH에서 우측)
 		JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
 		searchPanel.setBackground(Color.WHITE);
-		searchField = hint("검색어를 입력하세요");
+		searchField = new JTextField();
 		sz(searchField, 280, 30);
 		line(searchField, Color.GRAY);
 		ft(searchField, Font.PLAIN, 13);
 
-		JButton searchBtn = new JButton();
-		png(new JLabel(), "icon/search", 22, 22);
-		searchBtn.setText("🔍");
-		searchBtn.setPreferredSize(new Dimension(34, 30));
-		searchBtn.setBorderPainted(false);
-		searchBtn.setFocusPainted(false);
-		searchBtn.setBackground(Color.WHITE);
-		searchBtn.addActionListener(e -> doSearch());
-		searchField.addActionListener(e -> doSearch());
+		JLabel searchIcon = new JLabel();
+		png(searchIcon, "icon/search", 22, 22);
+		searchIcon.setPreferredSize(new Dimension(40, 40));
+		marginBorder(searchIcon, 0, 0, 0, 6);
+		searchIcon.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				search();
+			}
+		});
+		searchField.addActionListener(e -> search());
 
 		searchPanel.add(searchField);
-		searchPanel.add(searchBtn);
+		searchPanel.add(searchIcon);
 
 		logoRow.add(logoGroup, WEST);
 		logoRow.add(searchPanel, EAST);
 
-		// 메뉴 행 (자격증 목록 | 시험 일정)
-		JPanel menuRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 2));
+		JPanel menuRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 220, 0));
 		menuRow.setBackground(Color.WHITE);
+		marginBorder(menuRow, 20, 0, 20, 0);
 
 		JLabel menuList = new JLabel("자격증 목록");
 		JLabel menuSchedule = new JLabel("시험 일정");
-		ft(menuList, Font.PLAIN, 13);
-		ft(menuSchedule, Font.PLAIN, 13);
-		menuList.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		menuSchedule.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-		menuList.addMouseListener(new MouseAdapter() {
-			@Override public void mouseClicked(MouseEvent e) { openCertiList(-1); }
-		});
-		menuSchedule.addMouseListener(new MouseAdapter() {
-			@Override public void mouseClicked(MouseEvent e) { openSchedule(); }
-		});
 
 		menuRow.add(menuList);
 		menuRow.add(menuSchedule);
@@ -147,12 +116,9 @@ public class MainForm extends Frame {
 	// CENTER 영역 (A + C)
 	// ──────────────────────────────────────────────────────────────
 	private void buildCenterArea() {
-		centerP.setBackground(Color.WHITE);
-
 		// A영역: 슬라이드
 		JPanel aPanel = new JPanel(new BorderLayout());
-		aPanel.setBackground(Color.BLACK);
-		sz(aPanel, 580, 260);
+		sz(aPanel, 500, 260);
 		slideLabel = new JLabel();
 		slideLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		aPanel.add(slideLabel, CENTER);
@@ -171,38 +137,22 @@ public class MainForm extends Frame {
 		cPanel.add(loginPanel, "login");
 		cPanel.add(loggedPanel, "logged");
 
-		// 메달 라벨 (아이콘 + "자격증을 선택해주세요.")
-		JPanel medalRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-		medalRow.setBackground(Color.WHITE);
-		JLabel medalIcon = new JLabel();
-		png(medalIcon, "icon/medel", 42, 42);
-		marginBorder(medalIcon, 20, 0, 20, 20);
-		JLabel medalText = new JLabel("자격증을 선택해주세요.");
-		ft(medalText, Font.PLAIN, 13);
-		medalRow.add(medalIcon);
-		medalRow.add(medalText);
-
-		// 슬라이드 아래 메달 행
 		JPanel leftSection = new JPanel(new BorderLayout());
-		leftSection.setBackground(Color.WHITE);
 		leftSection.add(aPanel, NORTH);
-		leftSection.add(medalRow, CENTER);
 
 		centerP.add(leftSection, CENTER);
 		centerP.add(cPanel, EAST);
 	}
 
-	// ── 미로그인 C패널 ────────────────────────────────────────────
 	private void buildLoginPanel() {
 		loginPanel = new JPanel();
 		loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
 		loginPanel.setBackground(Color.WHITE);
-		loginPanel.setBorder(new LineBorder(Color.LIGHT_GRAY));
 
 		JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
 		top.setBackground(Color.WHITE);
 		JLabel checkIcon = new JLabel();
-		png(checkIcon, "icon/check", 30, 30);
+		png(checkIcon, "icon/check", 34, 34);
 		fk(checkIcon, new Color(0, 150, 100));
 		ft(checkIcon, Font.BOLD, 16);
 		JLabel needLogin = new JLabel("로그인이 필요합니다.");
@@ -211,41 +161,35 @@ public class MainForm extends Frame {
 		top.add(needLogin);
 
 		JButton loginBtn = new JButton("로그인");
-		loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-		loginBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-		bk(loginBtn, new Color(0, 90, 200));
+		loginBtn.setMaximumSize(new Dimension(100, 38));
+		loginBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
 		fk(loginBtn, Color.WHITE);
+		bk(loginBtn, Color.BLUE);
 		ft(loginBtn, Font.BOLD, 14);
-		loginBtn.setBorderPainted(false);
-		loginBtn.setFocusPainted(false);
-		loginBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		loginBtn.addActionListener(e -> {
 			dispose();
-			new forms.LoginForm();
+			new LoginForm();
 		});
 
-		infoArea = new JTextArea(
-				"로그인이 필요합니다.\n1. 유효한 사용자 정보를 입력하세요.\n2. 인증 절차를 확인하세요.\n3. 로그인 후 이용 가능합니다.\n4. 오류가 지속되면 관리자에게 문의하세요."
-		);
-		infoArea.setEditable(false);
-		infoArea.setLineWrap(true);
-		infoArea.setWrapStyleWord(true);
-		infoArea.setBackground(Color.WHITE);
-		ft(infoArea, Font.PLAIN, 11);
-		infoArea.setBorder(new EmptyBorder(6, 8, 6, 8));
+		JPanel infoArea = new JPanel();
+		infoArea.setLayout(new BoxLayout(infoArea, BoxLayout.Y_AXIS));
+
+		infoArea.add(jl = new JLabel("로그인이 필요합니다."));
+		bk(jl, Color.RED);
+		infoArea.add(jl = new JLabel("1. 유효한 사용자 정보를 입력하세요."));
+		infoArea.add(jl = new JLabel("2. 인증 절차를 확인하세요."));
+		infoArea.add(jl = new JLabel("3. 로그인 후 이용 가능합니다."));
+		infoArea.add(jl = new JLabel("4. 오류가 지속되면 관리자에게 문의하세요."));
+		infoArea.setBorder(new LineBorder(Color.BLACK, 1, true));
 
 		loginPanel.add(top);
-		loginPanel.add(Box.createRigidArea(new Dimension(0, 4)));
 		loginPanel.add(loginBtn);
-		loginPanel.add(Box.createRigidArea(new Dimension(0, 4)));
 		loginPanel.add(infoArea);
 	}
 
-	// ── 로그인 후 C패널 ───────────────────────────────────────────
 	private void buildLoggedPanel() {
 		loggedPanel = new JPanel(new BorderLayout());
-		loggedPanel.setBackground(Color.WHITE);
-		loggedPanel.setBorder(new LineBorder(Color.LIGHT_GRAY));
+		loggedPanel.setBorder(new LineBorder(Color.BLACK, 1, true));
 
 		// 상단: 인사 + 버튼
 		JPanel topBar = new JPanel(new BorderLayout());
@@ -267,21 +211,17 @@ public class MainForm extends Frame {
 		btnRow.setBackground(Color.WHITE);
 
 		JButton logoutBtn = new JButton("로그아웃");
-		bk(logoutBtn, new Color(0, 90, 200));
+		bk(logoutBtn, Color.BLUE);
 		fk(logoutBtn, Color.WHITE);
 		logoutBtn.setBorderPainted(false);
 		logoutBtn.setFocusPainted(false);
 		ft(logoutBtn, Font.BOLD, 12);
-		logoutBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		logoutBtn.addActionListener(e -> doLogout());
+		logoutBtn.addActionListener(e -> logout());
 
 		JButton myInfoBtn = new JButton("내 정보");
-		bk(myInfoBtn, new Color(0, 90, 200));
-		fk(myInfoBtn, Color.WHITE);
+		bk(myInfoBtn, Color.LIGHT_GRAY);
 		myInfoBtn.setBorderPainted(false);
 		myInfoBtn.setFocusPainted(false);
-		ft(myInfoBtn, Font.BOLD, 12);
-		myInfoBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		myInfoBtn.addActionListener(e -> {
 			dispose();
 			new forms.MyPageForm();
@@ -305,31 +245,27 @@ public class MainForm extends Frame {
 		loggedPanel.add(scroll, CENTER);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// SOUTH 영역 (카테고리 아이콘)
-	// ──────────────────────────────────────────────────────────────
 	private void buildSouthArea() {
-		southP.setBackground(new Color(245, 245, 245));
-		southP.setBorder(new LineBorder(Color.LIGHT_GRAY));
+		JPanel medalRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+		medalRow.setBackground(Color.WHITE);
+		JLabel medalIcon = new JLabel();
+		png(medalIcon, "icon/medel", 44, 44);
+		marginBorder(medalIcon, 20, 0, 20, 20);
+		JLabel medalText = new JLabel("자격증을 선택해주세요.");
+		medalRow.add(medalIcon);
+		medalRow.add(medalText);
 
-		iconPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-		iconPanel.setBackground(new Color(245, 245, 245));
+		iconPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 10));
+		iconPanel.setBorder(new LineBorder(Color.BLACK, 1, true));
 
+		southP.add(medalRow, NORTH);
 		southP.add(iconPanel, CENTER);
 	}
 
-	// =========================================================
-	// 슬라이드쇼
-	// =========================================================
 	private void loadSlideImages() {
-		File dir = new File("datafiles/main");
-		if (!dir.exists()) return;
-		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".png") || name.toLowerCase().endsWith(".jpg"));
-		if (files == null) return;
-		for (File f : files) {
-			ImageIcon icon = new ImageIcon(f.getAbsolutePath());
-			// 슬라이드 크기에 맞게 스케일
-			Image scaled = icon.getImage().getScaledInstance(580, 260, Image.SCALE_SMOOTH);
+		for (int i=1; i<=5; i++) {
+			ImageIcon icon = new ImageIcon("datafiles/main/" + i + ".png");
+			Image scaled = icon.getImage().getScaledInstance(500, 300, Image.SCALE_SMOOTH);
 			slideImages.add(new ImageIcon(scaled));
 		}
 	}
@@ -338,7 +274,6 @@ public class MainForm extends Frame {
 		if (slideImages.isEmpty()) return;
 		slideLabel.setIcon(slideImages.get(0));
 
-		// 오른쪽 → 왼쪽 슬라이딩: 타이머로 단순 전환 (3초)
 		slideTimer = new Timer(3000, e -> {
 			slideIndex = (slideIndex + 1) % slideImages.size();
 			slideLabel.setIcon(slideImages.get(slideIndex));
@@ -346,67 +281,47 @@ public class MainForm extends Frame {
 		slideTimer.start();
 	}
 
-	// =========================================================
-	// 카테고리 아이콘 로드 (DB category 테이블)
-	// =========================================================
-	// 아이콘 파일명 매핑 (cgname → icon 파일명)
-	private String iconFileFor(String cgname) {
-    if (cgname == null) return "check";
-
-    switch (cgname.trim()) {
-        case "IT":   return "it";
-        case "요리":  return "cooking";
-        case "봉사":  return "volunteer";
-        case "운동":  return "health";
-        case "의학":  return "hospital";
-        case "항공":  return "aviation";
-        default:     return "check";
-    }
-}
-
 	private void loadCategoryIcons() {
 		iconPanel.removeAll();
-		try {
-			DB.init();
-			ResultSet rs = DB.execute("SELECT cgno, cgname FROM category ORDER BY cgno");
-			while (rs.next()) {
-				int cgno = rs.getInt("cgno");
-				String cgname = rs.getString("cgname");
-				addIconButton(cgno, cgname);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		for (String[] entry : FIXED_ICONS) {
+			addIconButton(entry[0], entry[1]);
 		}
 		iconPanel.revalidate();
 		iconPanel.repaint();
 	}
 
-	private void addIconButton(int cgno, String cgname) {
-		String iconFile = iconFileFor(cgname);
+	private void addIconButton(String cgname, String iconFile) {
 		ImageIcon normalIcon = loadIconScaled("datafiles/icon/" + iconFile + ".png", 50, 50);
 		ImageIcon hoverIcon  = loadIconScaled("datafiles/icon/" + iconFile + ".png", 60, 60);
 
 		JLabel iconLabel = new JLabel(normalIcon);
 		iconLabel.setToolTipText(cgname);
 		iconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		iconLabel.setPreferredSize(new Dimension(60, 60));
+		iconLabel.setMinimumSize(new Dimension(60, 60));
+		iconLabel.setMaximumSize(new Dimension(60, 60));
+		iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		iconLabel.setVerticalAlignment(SwingConstants.CENTER);
 
 		iconLabel.addMouseListener(new MouseAdapter() {
-			@Override public void mouseEntered(MouseEvent e) {
-				iconLabel.setIcon(hoverIcon);
-			}
-			@Override public void mouseExited(MouseEvent e) {
-				iconLabel.setIcon(normalIcon);
-			}
+			@Override public void mouseEntered(MouseEvent e) { iconLabel.setIcon(hoverIcon); }
+			@Override public void mouseExited(MouseEvent e)  { iconLabel.setIcon(normalIcon); }
 			@Override public void mouseClicked(MouseEvent e) {
-				// 로그인 체크
 				if (!Temp.isLoggedIn()) {
 					Alert.error("로그인하세요");
 					dispose();
 					new forms.LoginForm();
 					return;
 				}
+
+				try {
+					DB.init();
+					ResultSet rs = DB.execute(
+							"SELECT cgno FROM category WHERE cgname='" + cgname + "' LIMIT 1"
+					);
+					if (rs.next()) Temp.selectedCgno = rs.getInt("cgno");
+				} catch (Exception ex) { ex.printStackTrace(); }
 				Temp.searchKeyword = "";
-				Temp.selectedCgno = cgno;
 				dispose();
 				new forms.CertiListForm();
 			}
@@ -423,19 +338,14 @@ public class MainForm extends Frame {
 		}
 	}
 
-	// =========================================================
-	// C영역 갱신 (로그인 여부에 따라 카드 전환)
-	// =========================================================
 	public void refreshCPanel() {
 		if (!Temp.isLoggedIn()) {
 			cCard.show(cPanel, "login");
 		} else {
-			// 인사 라벨 세팅
 			for (Component c : ((JPanel) ((BorderLayout) loggedPanel.getLayout())
 					.getLayoutComponent(NORTH)).getComponents()) {
-				// greetRow에서 greetLabel 찾기
 			}
-			// 간단하게 loggedPanel 재빌드 방식 대신 직접 접근
+
 			updateGreetLabel();
 			loadCourseList();
 			cCard.show(cPanel, "logged");
@@ -443,7 +353,6 @@ public class MainForm extends Frame {
 	}
 
 	private void updateGreetLabel() {
-		// loggedPanel > topBar > greetRow 에서 이름 라벨 찾아 업데이트
 		traverseAndUpdate(loggedPanel);
 	}
 
@@ -457,7 +366,6 @@ public class MainForm extends Frame {
 		}
 	}
 
-	// 수강 목록 로드 (수강신청 시작 날짜 내림차순)
 	private void loadCourseList() {
 		courseListPanel.removeAll();
 		try {
@@ -472,11 +380,10 @@ public class MainForm extends Frame {
 			while (rs.next()) {
 				String cname     = rs.getString("cname");
 				String startDate = rs.getString("start_date");
-				String days      = rs.getString("days");   // 강의기간(일수)
+				String days      = rs.getString("days");
 				int    cno       = rs.getInt("cno");
-				String rate      = rs.getString("rate");   // 출석 회차
+				String rate      = rs.getString("rate");
 
-				// 종료 여부: start_date + days일 < 오늘
 				boolean ended = isEnded(startDate, days);
 				String endDate = calcEndDate(startDate, days);
 
@@ -579,10 +486,7 @@ public class MainForm extends Frame {
 		} catch (Exception e) { return startDate; }
 	}
 
-	// =========================================================
-	// 검색
-	// =========================================================
-	private void doSearch() {
+	private void search() {
 		String keyword = searchField.getText().trim();
 		if (keyword.isEmpty()) return;
 
@@ -607,9 +511,6 @@ public class MainForm extends Frame {
 		new forms.CertiListForm();
 	}
 
-	// =========================================================
-	// 메뉴 클릭
-	// =========================================================
 	private void openCertiList(int cgno) {
 		if (!Temp.isLoggedIn()) {
 			Alert.error("로그인이 되어있지 않습니다.");
@@ -634,28 +535,14 @@ public class MainForm extends Frame {
 		new forms.ScheduleForm();
 	}
 
-	// =========================================================
-	// 로그아웃
-	// =========================================================
-	private void doLogout() {
+	private void logout() {
 		Temp.logout();
 		dispose();
 		new forms.MainForm();
 	}
 
-	// =========================================================
-	// 윈도우 닫기
-	// =========================================================
 	@Override
 	public void windowClosing(WindowEvent e) {
 		if (slideTimer != null) slideTimer.stop();
-	}
-
-	// =========================================================
-	// main (진입점)
-	// =========================================================
-	public static void main(String[] args) {
-		try { DB.init(); } catch (Exception ignored) {}
-		SwingUtilities.invokeLater(MainForm::new);
 	}
 }
