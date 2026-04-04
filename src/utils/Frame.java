@@ -150,16 +150,16 @@ public class Frame extends JFrame implements ActionListener, WindowListener, Mou
 		jl.setIcon(new ImageIcon(new ImageIcon("datafiles/" + data + ".png").getImage().getScaledInstance(w, h, 4)));
 	}
 
-	public void ft(JComponent c, int a, int b) {
-		c.setFont(new Font("맑은 고딕", a, b));
+	public void ft(JComponent c, int FontType, int FontSize) {
+		c.setFont(new Font("맑은 고딕", FontType, FontSize));
 	}
 
-	public void ft2(JComponent c, int a, int b) {
-		c.setFont(new Font("Calibri", a, b));
+	public void ft2(JComponent c, int FONT_STYLE, int FontSize) {
+		c.setFont(new Font("Calibri", FONT_STYLE, FontSize));
 	}
 
-	public void line(JComponent c, Color col) {
-		c.setBorder(new LineBorder(col));
+	public void line(JComponent c, Color color) {
+		c.setBorder(new LineBorder(color));
 	}
 
 	public void bk(JComponent c, Color col) {

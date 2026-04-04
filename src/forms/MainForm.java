@@ -9,7 +9,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
-import javax.swing.border.StrokeBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.ResultSet;
@@ -23,7 +22,6 @@ public class MainForm extends Frame {
 	private JLabel slideLabel;
 	private Timer slideTimer;
 	private JTextField searchField;
-	private JLabel greetLabel;
 	private JPanel cPanel;
 	private CardLayout cCard;
 	private JPanel loginPanel;
@@ -42,6 +40,7 @@ public class MainForm extends Frame {
 
 	public MainForm() {
 		init("자격증 메인 화면");
+		setSize(900, 620);
 
 		northP.setBorder(new EmptyBorder(6, 10, 0, 10));
 
@@ -77,9 +76,17 @@ public class MainForm extends Frame {
 
 		JLabel menuList = new JLabel("자격증 목록");
 		marginBorder(menuList, 0, 150, 0, 150);
+		menuList.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		menuList.addMouseListener(new MouseAdapter() {
+			@Override public void mouseClicked(MouseEvent e) { openCertiList(); }
+		});
 
 		JLabel menuSchedule = new JLabel("시험 일정");
 		marginBorder(menuSchedule, 0, 150, 0, 150);
+		menuSchedule.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		menuSchedule.addMouseListener(new MouseAdapter() {
+			@Override public void mouseClicked(MouseEvent e) { openSchedule(); }
+		});
 
 		JPanel menuRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		marginBorder(menuRow, 20, 0, 20, 0);
@@ -89,24 +96,16 @@ public class MainForm extends Frame {
 		northP.add(logoRow, NORTH);
 		northP.add(menuRow, CENTER);
 
-		// ============================================================
-		// WEST: 캐러셀 이미지
-		// ============================================================
 		slideLabel = new JLabel();
 		slideLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		sz(slideLabel, 500, 300);
 		westP.add(slideLabel, CENTER);
 
-		// ============================================================
-		// CENTER: 비로그인 / 로그인 카드레이아웃
-		// ============================================================
 		cCard  = new CardLayout();
 		cPanel = new JPanel(cCard);
 		sz(cPanel, 280, 300);
 
-		// 비로그인 패널
-		loginPanel = new JPanel();
-		loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
+		loginPanel = new JPanel(new BorderLayout());
 
 		JPanel loginTop = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		JLabel loginCheck = new JLabel();
@@ -122,26 +121,36 @@ public class MainForm extends Frame {
 		ft(loginBtn, Font.BOLD, 14);
 		loginBtn.addActionListener(e -> { dispose(); new LoginForm(); });
 
+		JPanel loginBtnWrap = new JPanel(new BorderLayout());
+		marginBorder(loginBtnWrap, 4, 8, 4, 8);
+		loginBtnWrap.add(loginBtn, CENTER);
+
 		JPanel infoArea = new JPanel();
 		infoArea.setLayout(new BoxLayout(infoArea, BoxLayout.Y_AXIS));
+		marginBorder(infoArea, 6, 8, 6, 8);
 		infoArea.add(jl = new JLabel("로그인이 필요합니다.")); fk(jl, Color.RED);
 		infoArea.add(jl = new JLabel("1. 유효한 사용자 정보를 입력하세요."));
 		infoArea.add(jl = new JLabel("2. 인증 절차를 확인하세요."));
 		infoArea.add(jl = new JLabel("3. 로그인 후 이용 가능합니다."));
 		infoArea.add(jl = new JLabel("4. 오류가 지속되면 관리자에게 문의하세요."));
-		infoArea.setBorder(new LineBorder(Color.BLACK, 1, true));
+		infoArea.setBorder(new LineBorder(Color.GRAY, 1, true));
 
-		loginPanel.add(loginTop);
-		loginPanel.add(loginBtn);
-		loginPanel.add(infoArea);
+		JPanel loginNorth = new JPanel();
+		loginNorth.setLayout(new BoxLayout(loginNorth, BoxLayout.Y_AXIS));
+		loginNorth.add(loginTop);
+		loginNorth.add(loginBtnWrap);
 
-		// 로그인 후 패널
+		loginPanel.add(loginNorth, NORTH);
+		loginPanel.add(infoArea, CENTER);
+
 		loggedPanel = new JPanel(new BorderLayout());
 		loggedPanel.setBorder(new LineBorder(Color.BLACK, 1, true));
 
 		JLabel greetCheck = new JLabel();
 		png(greetCheck, "icon/check", 40, 40);
-		greetLabel = new JLabel();
+		JLabel greetLabel = new JLabel();
+		greetLabel.setName("greetLabel");
+		ft(greetLabel, Font.PLAIN, 12);
 		JPanel greetRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
 		greetRow.add(greetCheck);
 		greetRow.add(greetLabel);
@@ -169,21 +178,22 @@ public class MainForm extends Frame {
 		courseListPanel = new JPanel();
 		courseListPanel.setLayout(new BoxLayout(courseListPanel, BoxLayout.Y_AXIS));
 		courseListPanel.setBackground(Color.WHITE);
-		JScrollPane scroll = new JScrollPane(courseListPanel);
-		scroll.setBorder(null);
-		scroll.getVerticalScrollBar().setUnitIncrement(10);
+		JScrollPane courseScroll = new JScrollPane(courseListPanel);
+		courseScroll.setBorder(null);
+		courseScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		courseScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+		courseScroll.getVerticalScrollBar().setUnitIncrement(10);
 
 		loggedPanel.add(loggedTop, NORTH);
-		loggedPanel.add(scroll, CENTER);
+		loggedPanel.add(courseScroll, CENTER);
 
 		cPanel.add(loginPanel, "login");
 		cPanel.add(loggedPanel, "logged");
 		centerP.add(cPanel, CENTER);
 
-		// SOUTH
 		JLabel medalIcon = new JLabel();
 		png(medalIcon, "icon/medel", 44, 44);
-		marginBorder(medalIcon, 10, 0, 10, 15);
+		marginBorder(medalIcon, 20, 0, 20, 20);
 		JLabel medalText = new JLabel("자격증을 선택해주세요.");
 
 		JPanel medalRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
@@ -203,10 +213,6 @@ public class MainForm extends Frame {
 
 		showPackedPage();
 	}
-
-	// ============================================================
-	// 기능 메서드
-	// ============================================================
 
 	private void loadSlideImages() {
 		for (int i = 1; i <= 5; i++) {
@@ -250,14 +256,10 @@ public class MainForm extends Frame {
 						Alert.error("로그인하세요");
 						dispose(); new LoginForm(); return;
 					}
-					System.out.println("Selected category: [" + cgname + "]");
 					try {
 						rs = DB.execute("SELECT cgno FROM category WHERE cgname like '%" + cgname + "%'");
 						if (rs.next()) Temp.selectedCgno = rs.getInt("cgno");
-						System.out.println("Selected cgno: " + Temp.selectedCgno);
-					} catch (Exception ex) {
-						ex.printStackTrace();
-					}
+					} catch (Exception ex) { ex.printStackTrace(); }
 					Temp.searchKeyword = "";
 					dispose();
 					new CertiListForm();
@@ -278,32 +280,39 @@ public class MainForm extends Frame {
 
 	public void refreshCPanel() {
 		if (!Temp.isLoggedIn()) {
-			greetLabel.setText("로그인이 필요합니다.");
 			cCard.show(cPanel, "login");
-			return;
+		} else {
+			traverseAndUpdate(loggedPanel);
+			loadCourseList();
+			cCard.show(cPanel, "logged");
 		}
+	}
 
-		loadCourseList();
-		greetLabel.setText(Temp.uname + "님, 환영합니다.");
-		cCard.show(cPanel, "logged");
+	private void traverseAndUpdate(Container container) {
+		for (Component c : container.getComponents()) {
+			if (c instanceof JLabel && "greetLabel".equals(c.getName())) {
+				((JLabel) c).setText(Temp.uname + "님, 환영합니다.");
+				return;
+			}
+			if (c instanceof Container) traverseAndUpdate((Container) c);
+		}
 	}
 
 	private void loadCourseList() {
 		courseListPanel.removeAll();
 		try {
 			ResultSet rs = DB.execute(
-					"SELECT cr.cno, cr.start_date, cr.rate, c.cname, c.days, c.ratring " +
+					"SELECT cr.cno, cr.start_date, cr.rate, c.cname, c.days " +
 							"FROM course_registration cr JOIN certi c ON cr.cno = c.cno " +
 							"WHERE cr.uno = " + Temp.uno + " ORDER BY cr.start_date DESC"
 			);
 			while (rs.next()) {
-				String  cname     = rs.getString("cname");
-				String  startDate = rs.getString("start_date");
-				String  days      = rs.getString("days");
-				int     ratring   = rs.getInt("ratring");
-				int     cno       = rs.getInt("cno");
-				boolean ended     = isEnded(startDate, days);
-				String  endDate   = calcEndDate(startDate, days);
+				String cname     = rs.getString("cname");
+				String startDate = rs.getString("start_date");
+				String days      = rs.getString("days");
+				int    cno       = rs.getInt("cno");
+				boolean ended    = isEnded(startDate, days);
+				String endDate   = calcEndDate(startDate, days);
 
 				JPanel item = new JPanel(new BorderLayout(4, 2));
 				item.setBorder(new LineBorder(Color.LIGHT_GRAY));
@@ -311,7 +320,7 @@ public class MainForm extends Frame {
 				JPanel infoP = new JPanel();
 				infoP.setLayout(new BoxLayout(infoP, BoxLayout.Y_AXIS));
 				marginBorder(infoP, 4, 6, 4, 6);
-				JLabel nameLabel = new JLabel(cname + " " + ratring + "급");
+				JLabel nameLabel = new JLabel(cname);
 				ft(nameLabel, Font.BOLD, 12);
 				JLabel dateLabel = new JLabel("수강 신청 : " + startDate + "~" + endDate);
 				ft(dateLabel, Font.PLAIN, 10); fk(dateLabel, Color.GRAY);
@@ -389,10 +398,7 @@ public class MainForm extends Frame {
 				Alert.error("해당하는 자격증이 존재하지 않습니다.");
 				return;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			return;
-		}
+		} catch (Exception e) { e.printStackTrace(); return; }
 		Temp.searchKeyword = keyword;
 		Temp.selectedCgno  = -1;
 		dispose();
@@ -416,7 +422,7 @@ public class MainForm extends Frame {
 			dispose(); new LoginForm(); return;
 		}
 		dispose();
-		new ScheduleForm();
+		new ExamScheduleForm();
 	}
 
 	private void logout() {

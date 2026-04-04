@@ -14,17 +14,22 @@ public class DB {
 	public static String DB_USER_PW = "1234";
 
 	public static void init() throws SQLException {
-		con = DriverManager.getConnection("jdbc:mysql://geonhee-gram/"+DB_NAME+"?serverTimezone=UTC&allowLoadLocalInfile=true", DB_USER, DB_USER_PW);
-		stmt = con.createStatement();
+		con = DriverManager.getConnection(
+				"jdbc:mysql://localhost/" + DB_NAME + "?serverTimezone=UTC&allowLoadLocalInfile=true",
+				DB_USER,
+				DB_USER_PW
+		);
 	}
 
 	public static ResultSet execute(String sql) throws SQLException {
-		System.out.println("sql excute: " + sql);
+		stmt = con.createStatement();
+		System.out.println("sql executeQuery: " + sql);
 		return stmt.executeQuery(sql);
 	}
-	
+
 	public static int executeUpdate(String sql) throws SQLException {
-        System.out.println("sql executeUpdate: " + sql);
-        return stmt.executeUpdate(sql);
-    }
+		stmt = con.createStatement();
+		System.out.println("sql executeUpdate: " + sql);
+		return stmt.executeUpdate(sql);
+	}
 }
